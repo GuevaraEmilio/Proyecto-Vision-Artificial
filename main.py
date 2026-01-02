@@ -35,7 +35,7 @@ def algoritmo_cadena(muestras, umbral):
     return grupos, medias, asignaciones
 
 # Cargar imagen y convertir a matriz de muestras
-img_path = 'imgs/Screenshot 2026-01-01 182856.png'
+img_path = 'imgs/playa06.png'
 img = Image.open(img_path)
 
 # Redimensionar la imagen para acelerar el procesamiento (ajusta el tamaño según necesites)
