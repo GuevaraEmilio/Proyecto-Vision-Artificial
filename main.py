@@ -35,7 +35,7 @@ def algoritmo_cadena(muestras, umbral):
     return grupos, medias, asignaciones
 
 # Cargar imagen y convertir a matriz de muestras
-img_path = 'imgs/playa06.png'
+img_path = 'img_recortadas/playa01.png'  # Cambia esta ruta a la imagen que deseas procesar
 img = Image.open(img_path)
 
 # Redimensionar la imagen para acelerar el procesamiento (ajusta el tamaño según necesites)
@@ -82,5 +82,5 @@ for idx, group_id in enumerate(asignaciones):
 
 # Crear imagen segmentada
 segmented_pil = Image.fromarray(segmented_img.astype('uint8'))
-segmented_pil.save('segmented_image.png')
+segmented_pil.save('img_segmented/segmented_image.png')
 print("Imagen segmentada guardada como 'segmented_image.png'")  # Solo mostrar cantidad para no imprimir todo
