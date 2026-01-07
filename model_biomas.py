@@ -2,7 +2,7 @@ import numpy as np
 from PIL import Image
 import random
 import os
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
 import joblib
@@ -75,21 +75,29 @@ def get_biome_label(filename):
         return 'desconocido'
 
 def extract_features(img_path, umbral):
+    print(f"Procesando {img_path}")
     img = Image.open(img_path)
-    img = img.resize((200, 200))
+    img = img.resize((100, 100))  # Reducido para acelerar
     img = img.convert('RGB')
     img_array = np.array(img)
     height, width, channels = img_array.shape
     muestras = img_array.reshape((height * width, channels)).astype(float)
     grupos, medias, asignaciones = algoritmo_cadena(muestras, umbral)
     num_groups = len(grupos)
-    avg_group_size = np.mean([len(g) for g in grupos]) if grupos else 0
+    group_sizes = [len(g) for g in grupos]
+    avg_group_size = np.mean(group_sizes) if group_sizes else 0
+    std_group_size = np.std(group_sizes) if group_sizes else 0
+    min_group_size = min(group_sizes) if group_sizes else 0
+    max_group_size = max(group_sizes) if group_sizes else 0
+    num_large_groups = sum(1 for size in group_sizes if size > avg_group_size) if group_sizes else 0
     mean_color = np.mean(medias, axis=0) if medias else np.zeros(3)
-    features = [num_groups, avg_group_size] + mean_color.tolist()
+    var_color = np.var(medias, axis=0) if medias else np.zeros(3)
+    features = [num_groups, avg_group_size, std_group_size, min_group_size, max_group_size, num_large_groups] + mean_color.tolist() + var_color.tolist()
+    print(f"  Grupos: {num_groups}, Tamaño prom: {avg_group_size:.2f}, Std: {std_group_size:.2f}, Min: {min_group_size}, Max: {max_group_size}, Grandes: {num_large_groups}")
     return features
 
 # Parámetros
-umbral = 50  # Puedes ajustar este umbral
+umbral = 50  # Reducido para más grupos
 
 # Cargar datos
 data = []
@@ -108,29 +116,31 @@ for file in os.listdir(img_dir):
         except Exception as e:
             print(f"Error procesando {file}: {e}")
 
+print(f"Procesadas {len(data)} imágenes")
+
 X = np.array(data)
 y = labels
 
 print(f"Dataset: {len(X)} muestras, {len(set(y))} clases")
 
-# Dividir en train/test
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+# Guardar dataset
+joblib.dump({'X': X, 'y': y}, 'dataset_biomas.pkl')
+print("Dataset guardado como 'dataset_biomas.pkl'")
 
-# Entrenar modelo
-clf = RandomForestClassifier(n_estimators=100, random_state=42)
-clf.fit(X_train, y_train)
+# Evaluar con cross-validation
+clf = RandomForestClassifier(n_estimators=100, class_weight='balanced', random_state=42)
+scores = cross_val_score(clf, X, y, cv=5, scoring='balanced_accuracy')
+print(f"Balanced Accuracy CV: {scores.mean():.2f} (+/- {scores.std() * 2:.2f})")
 
-# Evaluar
-y_pred = clf.predict(X_test)
-print("Classification Report:")
-print(classification_report(y_test, y_pred))
+# Entrenar en todo el dataset para guardar
+clf.fit(X, y)
 
 # Guardar modelo
 joblib.dump(clf, 'modelo_biomas.pkl')
 print("Modelo guardado como 'modelo_biomas.pkl'")
 
 # Función para predecir en una nueva imagen
-def predecir_bioma(img_path, umbral=50):
+def predecir_bioma(img_path, umbral=40):
     feat = extract_features(img_path, umbral)
     pred = clf.predict([feat])
     return pred[0]
