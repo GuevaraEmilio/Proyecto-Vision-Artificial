@@ -1,6 +1,9 @@
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
+import subprocess
+import sys
+import os
 
 class ClasificadorBiomas:
     def __init__(self, root):
@@ -166,8 +169,12 @@ class ClasificadorBiomas:
         self.btn_limpiar.bind('<Enter>', lambda e: self.btn_limpiar.config(bg='#c0392b'))
         self.btn_limpiar.bind('<Leave>', lambda e: self.btn_limpiar.config(bg='#e74c3c'))
         
-        # Variable para almacenar la imagen
+        # Variables para almacenar la imagen y ruta
         self.imagen_actual = None
+        self.ruta_imagen = None
+        
+        # Ruta al script de predicción (ajustar si está en otra carpeta)
+        self.script_prediccion = 'predict_biomas2.py'
     
     def on_enter_circular(self, event):
         """Efecto hover - entrar"""
@@ -189,7 +196,10 @@ class ClasificadorBiomas:
         
         if archivo:
             try:
-                # Cargar y redimensionar la imagen
+                # Guardar la ruta del archivo
+                self.ruta_imagen = archivo
+                
+                # Cargar y redimensionar la imagen para visualización
                 img = Image.open(archivo)
                 
                 # Obtener dimensiones del frame
@@ -212,64 +222,18 @@ class ClasificadorBiomas:
                 self.imagen_label.configure(image=self.imagen_actual, text="")
                 self.imagen_label.image = self.imagen_actual
                 
+                print(f"Imagen cargada: {archivo}")
+                
             except Exception as e:
                 self.imagen_label.configure(
                     text=f"Error al cargar imagen:\n{str(e)}",
                     image=""
                 )
+                self.ruta_imagen = None
     
     def clasificar(self):
-        """Clasificar la imagen cargada"""
-        if self.imagen_actual:
-            # Ventana de resultado con diseño moderno
-            resultado = tk.Toplevel(self.root)
-            resultado.title("Resultado de Clasificación")
-            resultado.geometry("400x200")
-            resultado.configure(bg='white')
-            resultado.resizable(False, False)
-            
-            # Centrar ventana
-            resultado.transient(self.root)
-            resultado.grab_set()
-            
-            tk.Label(
-                resultado,
-                text="✓ Clasificación completada",
-                font=('Helvetica', 16, 'bold'),
-                bg='white',
-                fg='#27ae60'
-            ).pack(pady=25)
-            
-            tk.Label(
-                resultado,
-                text="Bioma detectado:",
-                font=('Helvetica', 11),
-                bg='white',
-                fg='#7f8c8d'
-            ).pack()
-            
-            tk.Label(
-                resultado,
-                text="Bosque Tropical",
-                font=('Helvetica', 18, 'bold'),
-                bg='white',
-                fg='#2c3e50'
-            ).pack(pady=10)
-            
-            tk.Button(
-                resultado,
-                text="CERRAR",
-                command=resultado.destroy,
-                bg='#3498db',
-                fg='white',
-                font=('Helvetica', 11, 'bold'),
-                relief='flat',
-                bd=0,
-                cursor='hand2',
-                width=15,
-                height=2
-            ).pack(pady=20)
-        else:
+        """Clasificar la imagen cargada usando predict_biomas.py"""
+        if not self.imagen_actual or not self.ruta_imagen:
             # Mensaje si no hay imagen cargada
             mensaje = tk.Toplevel(self.root)
             mensaje.title("Aviso")
@@ -309,10 +273,111 @@ class ClasificadorBiomas:
                 cursor='hand2',
                 width=15
             ).pack(pady=15)
+            return
+        
+        # Verificar que existe el script de predicción
+        if not os.path.exists(self.script_prediccion):
+            messagebox.showerror(
+                "Error",
+                f"No se encontró el archivo '{self.script_prediccion}'.\n"
+                f"Asegúrate de que esté en la misma carpeta o especifica la ruta correcta."
+            )
+            return
+        
+        try:
+            # Llamar al script de predicción como proceso separado
+            print(f"Ejecutando: python {self.script_prediccion} {self.ruta_imagen}")
+            
+            resultado = subprocess.run(
+                [sys.executable, self.script_prediccion, self.ruta_imagen],
+                capture_output=True,
+                text=True,
+                timeout=30  # timeout de 30 segundos
+            )
+            
+            # Verificar si hubo error
+            if resultado.returncode != 0:
+                error_msg = resultado.stderr if resultado.stderr else "Error desconocido"
+                messagebox.showerror(
+                    "Error en clasificación",
+                    f"El script de predicción falló:\n{error_msg}"
+                )
+                print(f"STDERR: {resultado.stderr}")
+                return
+            
+            # Obtener el bioma predicho (viene en stdout)
+            bioma_predicho = resultado.stdout.strip()
+            
+            # Mostrar información de debug
+            print(f"STDOUT: {resultado.stdout}")
+            print(f"STDERR: {resultado.stderr}")
+            print(f"Bioma predicho: {bioma_predicho}")
+            
+            # Ventana de resultado con diseño moderno
+            resultado_ventana = tk.Toplevel(self.root)
+            resultado_ventana.title("Resultado de Clasificación")
+            resultado_ventana.geometry("400x200")
+            resultado_ventana.configure(bg='white')
+            resultado_ventana.resizable(False, False)
+            
+            # Centrar ventana
+            resultado_ventana.transient(self.root)
+            resultado_ventana.grab_set()
+            
+            tk.Label(
+                resultado_ventana,
+                text="✓ Clasificación completada",
+                font=('Helvetica', 16, 'bold'),
+                bg='white',
+                fg='#27ae60'
+            ).pack(pady=25)
+            
+            tk.Label(
+                resultado_ventana,
+                text="Bioma detectado:",
+                font=('Helvetica', 11),
+                bg='white',
+                fg='#7f8c8d'
+            ).pack()
+            
+            tk.Label(
+                resultado_ventana,
+                text=bioma_predicho,
+                font=('Helvetica', 18, 'bold'),
+                bg='white',
+                fg='#2c3e50'
+            ).pack(pady=10)
+            
+            tk.Button(
+                resultado_ventana,
+                text="CERRAR",
+                command=resultado_ventana.destroy,
+                bg='#3498db',
+                fg='white',
+                font=('Helvetica', 11, 'bold'),
+                relief='flat',
+                bd=0,
+                cursor='hand2',
+                width=15,
+                height=2
+            ).pack(pady=20)
+            
+        except subprocess.TimeoutExpired:
+            messagebox.showerror(
+                "Error",
+                "La clasificación tardó demasiado tiempo y se canceló."
+            )
+        except Exception as e:
+            messagebox.showerror(
+                "Error",
+                f"Error al ejecutar la clasificación:\n{str(e)}"
+            )
+            print(f"Error detallado: {e}")
     
     def limpiar(self):
         """Limpiar la imagen actual"""
         self.imagen_actual = None
+        self.ruta_imagen = None
         self.imagen_label.configure(
             image="",
             text="Selecciona una imagen\npara clasificar el bioma"

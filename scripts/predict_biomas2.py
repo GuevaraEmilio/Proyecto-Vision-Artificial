@@ -1,11 +1,8 @@
 import numpy as np
 from PIL import Image
-import random
-import os
 import joblib
 import sys
-import tkinter as tk
-from tkinter import filedialog
+import os
 
 def distancia_euclidiana(x, m): # x es la muestra, m es la media del grupo
     return np.linalg.norm(x - m)
@@ -40,7 +37,7 @@ def algoritmo_cadena(muestras, umbral):
     return grupos, medias, asignaciones
 
 def extract_features(img_path, umbral):
-    print(f"Procesando {img_path}")
+    print(f"Procesando {img_path}", file=sys.stderr)
     img = Image.open(img_path)
     img = img.resize((100, 100))
     img = img.convert('RGB')
@@ -58,36 +55,53 @@ def extract_features(img_path, umbral):
     mean_color = np.mean(medias, axis=0) if medias else np.zeros(3)
     var_color = np.var(medias, axis=0) if medias else np.zeros(3)
     features = [num_groups, avg_group_size, std_group_size, min_group_size, max_group_size, num_large_groups] + mean_color.tolist() + var_color.tolist()
-    print(f"  Grupos: {num_groups}, Tamaño prom: {avg_group_size:.2f}, Std: {std_group_size:.2f}, Min: {min_group_size}, Max: {max_group_size}, Grandes: {num_large_groups}")
+    print(f"  Grupos: {num_groups}, Tamaño prom: {avg_group_size:.2f}, Std: {std_group_size:.2f}, Min: {min_group_size}, Max: {max_group_size}, Grandes: {num_large_groups}", file=sys.stderr)
     return features
 
 # Parámetros
 umbral = 50  # Mismo que en el entrenamiento
 
-# Cargar modelo
-clf = joblib.load('../models/modelo_biomas.pkl')
-print("Modelo cargado.")
-
-# Cargar dataset (opcional, para referencia)
-# data = joblib.load('dataset_biomas.pkl')
-# print(f"Dataset cargado: {len(data['X'])} muestras")
-
-# Seleccionar imagen desde una ventana
-root = tk.Tk()
-root.withdraw()  # Ocultar la ventana principal
-img_path = filedialog.askopenfilename(
-    title="Selecciona una imagen",
-    filetypes=[("Imágenes", "*.png *.jpg *.jpeg *.bmp *.tiff")]
-)
-if not img_path:
-    print("No se seleccionó ninguna imagen.")
+# Verificar argumentos
+if len(sys.argv) < 2:
+    print("ERROR: No se proporcionó ruta de imagen", file=sys.stderr)
     sys.exit(1)
+
+img_path = sys.argv[1]
 
 if not os.path.exists(img_path):
-    print(f"Imagen no encontrada: {img_path}")
+    print(f"ERROR: Imagen no encontrada: {img_path}", file=sys.stderr)
     sys.exit(1)
 
-# Extraer features y predecir
-features = extract_features(img_path, umbral)
-pred = clf.predict([features])
-print(f"El bioma predicho para {img_path} es: {pred[0]}")
+try:
+    # Cargar modelo desde la carpeta models (fuera del directorio de scripts)
+    # Buscar en el directorio padre / carpeta models
+    modelo_path = os.path.join('..', 'models', 'modelo_biomas.pkl')
+    
+    # Si no existe, intentar ruta relativa al directorio actual
+    if not os.path.exists(modelo_path):
+        modelo_path = os.path.join('models', 'modelo_biomas.pkl')
+    
+    # Si no existe, intentar desde el directorio del script
+    if not os.path.exists(modelo_path):
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        parent_dir = os.path.dirname(script_dir)
+        modelo_path = os.path.join(parent_dir, 'models', 'modelo_biomas.pkl')
+    
+    if not os.path.exists(modelo_path):
+        print(f"ERROR: No se encontró el archivo modelo_biomas.pkl", file=sys.stderr)
+        print(f"Buscado en: ../models/, models/ y carpeta padre", file=sys.stderr)
+        sys.exit(1)
+    
+    clf = joblib.load(modelo_path)
+    print(f"Modelo cargado desde: {modelo_path}", file=sys.stderr)
+    
+    # Extraer features y predecir
+    features = extract_features(img_path, umbral)
+    pred = clf.predict([features])
+    
+    # Imprimir solo el resultado en stdout (para que iu.py lo capture)
+    print(pred[0])
+    
+except Exception as e:
+    print(f"ERROR: {str(e)}", file=sys.stderr)
+    sys.exit(1)
