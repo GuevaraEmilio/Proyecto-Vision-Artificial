@@ -97,12 +97,12 @@ def extract_features(img_path, umbral):
     return features
 
 # Parámetros
-umbral = 50  # Reducido para más grupos
+umbral = 30  # Reducido para más grupos
 
 # Cargar datos
 data = []
 labels = []
-img_dir = 'img_recortadas'
+img_dir = '../imgs/img_recortadas'
 
 for file in os.listdir(img_dir):
     if file.endswith('.png'):
