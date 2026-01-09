@@ -5,6 +5,7 @@ import subprocess
 import sys
 import os
 import pygame
+import random
 
 class ClasificadorBiomas:
     def __init__(self, root):
@@ -16,21 +17,21 @@ class ClasificadorBiomas:
         
         # Mapeo de biomas a archivos de audio
         self.audio_map = {
-            'arrecife': 'bioma_arrecife_ernesto.wav',
-            'badlands': 'biomas_badlans_ernesto.wav',
-            'bosque': 'biomas_bosque_ernesto.wav',
-            'cenote': 'biomas_cenote_ernesto.wav',
-            'cerezos': 'biomas_cerezos_ernesto.wav',
-            'cueva': 'biomas_cueva_ernesto.wav',
-            'desierto': 'biomas_desierto_ernesto.wav',
-            'lago': 'biomas_lago_ernesto.wav',
-            'montaña': 'biomas_montana_ernesto.wav',
-            'pantano': 'biomas_pantano_ernesto.wav',
-            'playa': 'biomas_playa_ernesto.wav',
-            'pradera': 'biomas_pradera_ernesto.wav',
-            'sabana': 'biomas_sabana_ernesto.wav',
-            'selva': 'biomas_selva_ernesto.wav',
-            'tundra': 'biomas_tundra_ernesto.wav',
+            'arrecife': ['biomas_arrecife_ernesto.wav', 'biomas_arrecife_emilio.wav'],
+            'badlands': ['biomas_badlans_ernesto.wav', 'biomas_badlans_emilio.wav'],
+            'bosque': ['biomas_bosque_ernesto.wav', 'biomas_bosque_emilio.wav'],
+            'cenote': ['biomas_cenote_ernesto.wav', 'biomas_cenote_emilio.wav'],
+            'cerezos': ['biomas_cerezos_ernesto.wav', 'biomas_cerezos_emilio.wav'],
+            'cueva': ['biomas_cueva_ernesto.wav', 'biomas_cueva_emilio.wav'],
+            'desierto': ['biomas_desierto_ernesto.wav', 'biomas_desierto_emilio.wav'],
+            'lago': ['biomas_lago_ernesto.wav', 'biomas_lago_emilio.wav'],
+            'montaña': ['biomas_montana_ernesto.wav', 'biomas_montana_emilio.wav'],
+            'pantano': ['biomas_pantano_ernesto.wav', 'biomas_pantano_emilio.wav'],
+            'playa': ['biomas_playa_ernesto.wav', 'biomas_playa_emilio.wav'],
+            'pradera': ['biomas_pradera_ernesto.wav', 'biomas_pradera_emilio.wav'],
+            'sabana': ['biomas_sabana_ernesto.wav', 'biomas_sabana_emilio.wav'],
+            'selva': ['biomas_selva_ernesto.wav', 'biomas_selva_emilio.wav'],
+            'tundra': ['biomas_tundra_ernesto.wav', 'biomas_tundra_emilio.wav']
         }
         
         self.audio_directory = 'audio'
@@ -476,7 +477,7 @@ class ClasificadorBiomas:
         )
     
     def reproducir_audio(self):
-        """Reproducir el audio del bioma clasificado"""
+        """Reproducir el audio del bioma clasificado (seleccionado aleatoriamente si hay múltiples)"""
         if not self.bioma_actual:
             # Mensaje si no hay bioma clasificado
             mensaje = tk.Toplevel(self.root)
@@ -520,22 +521,33 @@ class ClasificadorBiomas:
             return
         
         try:
-            # Encontrar el archivo de audio correspondiente
+            # Encontrar archivos de audio correspondientes al bioma
             bioma_lower = self.bioma_actual.lower().strip()
             
-            # Buscar el audio en el mapa
-            audio_file = None
-            for key, filename in self.audio_map.items():
-                if key.lower() in bioma_lower or bioma_lower in key.lower():
-                    audio_file = filename
-                    break
+            # Buscar archivos de audio en la carpeta que correspondan al bioma
+            audio_files = []
             
-            if not audio_file:
+            if os.path.exists(self.audio_directory):
+                for file in os.listdir(self.audio_directory):
+                    # Buscar archivos que contengan el nombre del bioma
+                    if bioma_lower in file.lower() and file.lower().endswith(('.wav', '.mp3', '.ogg', '.flac')):
+                        audio_files.append(file)
+            
+            # Si no hay archivos, intentar buscar en el mapa de audio
+            if not audio_files:
+                for key, filename in self.audio_map.items():
+                    if key.lower() in bioma_lower or bioma_lower in key.lower():
+                        audio_files.append(filename)
+            
+            if not audio_files:
                 messagebox.showwarning(
                     "Audio no encontrado",
                     f"No hay audio disponible para el bioma: {self.bioma_actual}"
                 )
                 return
+            
+            # Seleccionar aleatoriamente uno de los audios disponibles
+            audio_file = random.choice(audio_files)
             
             # Ruta completa del archivo de audio
             audio_path = os.path.join(self.audio_directory, audio_file)
