@@ -3,7 +3,7 @@ from PIL import Image
 
 # Carpeta de entrada y salida
 input_dir = "imgs"
-output_dir = "imagenes_recortadas"
+output_dir = "imgs/imagenes_recortadas"
 
 os.makedirs(output_dir, exist_ok=True)
 
