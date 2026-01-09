@@ -174,7 +174,7 @@ class ClasificadorBiomas:
         self.ruta_imagen = None
         
         # Ruta al script de predicción (ajustar si está en otra carpeta)
-        self.script_prediccion = 'predict_biomas2.py'
+        self.script_prediccion = 'scripts/predict_biomas2.py'
     
     def on_enter_circular(self, event):
         """Efecto hover - entrar"""
@@ -316,7 +316,7 @@ class ClasificadorBiomas:
             # Ventana de resultado con diseño moderno
             resultado_ventana = tk.Toplevel(self.root)
             resultado_ventana.title("Resultado de Clasificación")
-            resultado_ventana.geometry("400x200")
+            resultado_ventana.geometry("400x300")
             resultado_ventana.configure(bg='white')
             resultado_ventana.resizable(False, False)
             
