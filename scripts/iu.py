@@ -450,6 +450,9 @@ class ClasificadorBiomas:
                 height=2
             ).pack(pady=20)
             
+            # Reproducir audio automáticamente después de mostrar el resultado
+            self.root.after(500, self.reproducir_audio)
+            
         except subprocess.TimeoutExpired:
             messagebox.showerror(
                 "Error",
