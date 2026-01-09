@@ -4,11 +4,36 @@ from PIL import Image, ImageTk
 import subprocess
 import sys
 import os
+import pygame
 
 class ClasificadorBiomas:
     def __init__(self, root):
         self.root = root
         self.root.title("Clasificador de Biomas")
+        
+        # Inicializar pygame para reproducción de audio
+        pygame.mixer.init()
+        
+        # Mapeo de biomas a archivos de audio
+        self.audio_map = {
+            'arrecife': 'bioma_arrecife_ernesto.wav',
+            'badlands': 'biomas_badlans_ernesto.wav',
+            'bosque': 'biomas_bosque_ernesto.wav',
+            'cenote': 'biomas_cenote_ernesto.wav',
+            'cerezos': 'biomas_cerezos_ernesto.wav',
+            'cueva': 'biomas_cueva_ernesto.wav',
+            'desierto': 'biomas_desierto_ernesto.wav',
+            'lago': 'biomas_lago_ernesto.wav',
+            'montaña': 'biomas_montana_ernesto.wav',
+            'pantano': 'biomas_pantano_ernesto.wav',
+            'playa': 'biomas_playa_ernesto.wav',
+            'pradera': 'biomas_pradera_ernesto.wav',
+            'sabana': 'biomas_sabana_ernesto.wav',
+            'selva': 'biomas_selva_ernesto.wav',
+            'tundra': 'biomas_tundra_ernesto.wav',
+        }
+        
+        self.audio_directory = 'audio'
         
         # Configurar pantalla completa
         self.root.attributes('-fullscreen', True)
@@ -92,6 +117,57 @@ class ClasificadorBiomas:
         self.canvas_btn.bind('<Leave>', self.on_leave_circular)
         self.canvas_btn.configure(cursor='hand2')
         
+        # Canvas para botón circular de audio (azul marino)
+        canvas_audio_size = 100
+        self.canvas_audio = tk.Canvas(
+            left_frame,
+            width=canvas_audio_size + 10,
+            height=canvas_audio_size + 10,
+            bg='#f5f5f5',
+            highlightthickness=0
+        )
+        self.canvas_audio.pack(pady=30)
+        
+        # Sombra del círculo de audio
+        self.canvas_audio.create_oval(
+            7, 7,
+            canvas_audio_size + 3, canvas_audio_size + 3,
+            fill='#d0d0d0',
+            outline=''
+        )
+        
+        # Círculo principal azul marino
+        self.circulo_audio = self.canvas_audio.create_oval(
+            5, 5,
+            canvas_audio_size, canvas_audio_size,
+            fill='#1a3a52',
+            outline='#0f1f2e',
+            width=2
+        )
+        
+        # Logo de audio (altavoz)
+        self.canvas_audio.create_text(
+            canvas_audio_size // 2 + 2, canvas_audio_size // 2 + 2,
+            text="🔊",
+            font=('Arial', 32),
+            fill='white'
+        )
+        
+        # Texto debajo del botón de audio
+        tk.Label(
+            left_frame,
+            text="Escuchar\nAudio",
+            font=('Helvetica', 11),
+            bg='#f5f5f5',
+            fg='#7f8c8d'
+        ).pack()
+        
+        # Hacer el canvas de audio clickeable
+        self.canvas_audio.bind('<Button-1>', lambda e: self.reproducir_audio())
+        self.canvas_audio.bind('<Enter>', self.on_enter_audio)
+        self.canvas_audio.bind('<Leave>', self.on_leave_audio)
+        self.canvas_audio.configure(cursor='hand2')
+        
         # Frame para la imagen central con bordes redondeados simulados
         image_container = tk.Frame(top_frame, bg='#f5f5f5')
         image_container.pack(side='left', expand=True, fill='both', padx=30)
@@ -172,6 +248,7 @@ class ClasificadorBiomas:
         # Variables para almacenar la imagen y ruta
         self.imagen_actual = None
         self.ruta_imagen = None
+        self.bioma_actual = None
         
         # Ruta al script de predicción (ajustar si está en otra carpeta)
         self.script_prediccion = 'scripts/predict_biomas2.py'
@@ -183,6 +260,14 @@ class ClasificadorBiomas:
     def on_leave_circular(self, event):
         """Efecto hover - salir"""
         self.canvas_btn.itemconfig(self.circulo, fill='#3498db')
+        
+    def on_enter_audio(self, event):
+        """Efecto hover audio - entrar"""
+        self.canvas_audio.itemconfig(self.circulo_audio, fill='#2d5f7f')
+    
+    def on_leave_audio(self, event):
+        """Efecto hover audio - salir"""
+        self.canvas_audio.itemconfig(self.circulo_audio, fill='#1a3a52')
         
     def cargar_imagen(self):
         """Cargar una imagen desde el sistema de archivos"""
@@ -308,6 +393,9 @@ class ClasificadorBiomas:
             # Obtener el bioma predicho (viene en stdout)
             bioma_predicho = resultado.stdout.strip()
             
+            # Almacenar el bioma actual para reproducir audio después
+            self.bioma_actual = bioma_predicho
+            
             # Mostrar información de debug
             print(f"STDOUT: {resultado.stdout}")
             print(f"STDERR: {resultado.stderr}")
@@ -378,10 +466,97 @@ class ClasificadorBiomas:
         """Limpiar la imagen actual"""
         self.imagen_actual = None
         self.ruta_imagen = None
+        self.bioma_actual = None
         self.imagen_label.configure(
             image="",
             text="Selecciona una imagen\npara clasificar el bioma"
         )
+    
+    def reproducir_audio(self):
+        """Reproducir el audio del bioma clasificado"""
+        if not self.bioma_actual:
+            # Mensaje si no hay bioma clasificado
+            mensaje = tk.Toplevel(self.root)
+            mensaje.title("Aviso")
+            mensaje.geometry("350x250")
+            mensaje.configure(bg='white')
+            mensaje.resizable(False, False)
+            
+            # Centrar ventana
+            mensaje.transient(self.root)
+            mensaje.grab_set()
+            
+            tk.Label(
+                mensaje,
+                text="⚠",
+                font=('Arial', 32),
+                bg='white',
+                fg='#f39c12'
+            ).pack(pady=15)
+            
+            tk.Label(
+                mensaje,
+                text="Primero debes clasificar una imagen",
+                font=('Helvetica', 12),
+                bg='white',
+                fg='#2c3e50'
+            ).pack(pady=10)
+            
+            tk.Button(
+                mensaje,
+                text="ENTENDIDO",
+                command=mensaje.destroy,
+                bg='#3498db',
+                fg='white',
+                font=('Helvetica', 10, 'bold'),
+                relief='flat',
+                bd=0,
+                cursor='hand2',
+                width=15
+            ).pack(pady=15)
+            return
+        
+        try:
+            # Encontrar el archivo de audio correspondiente
+            bioma_lower = self.bioma_actual.lower().strip()
+            
+            # Buscar el audio en el mapa
+            audio_file = None
+            for key, filename in self.audio_map.items():
+                if key.lower() in bioma_lower or bioma_lower in key.lower():
+                    audio_file = filename
+                    break
+            
+            if not audio_file:
+                messagebox.showwarning(
+                    "Audio no encontrado",
+                    f"No hay audio disponible para el bioma: {self.bioma_actual}"
+                )
+                return
+            
+            # Ruta completa del archivo de audio
+            audio_path = os.path.join(self.audio_directory, audio_file)
+            
+            # Verificar que el archivo existe
+            if not os.path.exists(audio_path):
+                messagebox.showerror(
+                    "Error",
+                    f"No se encontró el archivo de audio:\n{audio_path}"
+                )
+                return
+            
+            # Reproducir el audio
+            pygame.mixer.music.load(audio_path)
+            pygame.mixer.music.play()
+            
+            print(f"Reproduciendo audio: {audio_path}")
+            
+        except Exception as e:
+            messagebox.showerror(
+                "Error",
+                f"Error al reproducir el audio:\n{str(e)}"
+            )
+            print(f"Error detallado: {e}")
 
 if __name__ == "__main__":
     root = tk.Tk()
