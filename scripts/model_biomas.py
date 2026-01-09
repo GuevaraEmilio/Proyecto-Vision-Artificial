@@ -97,12 +97,12 @@ def extract_features(img_path, umbral):
     return features
 
 # Parámetros
-umbral = 50  # Reducido para más grupos
+umbral = 40  # Reducido para más grupos
 
 # Cargar datos
 data = []
 labels = []
-img_dir = 'img_recortadas'
+img_dir = 'imgs/img_recortadas'
 
 for file in os.listdir(img_dir):
     if file.endswith('.png'):
@@ -124,7 +124,7 @@ y = labels
 print(f"Dataset: {len(X)} muestras, {len(set(y))} clases")
 
 # Guardar dataset
-joblib.dump({'X': X, 'y': y}, 'dataset_biomas.pkl')
+joblib.dump({'X': X, 'y': y}, 'models/dataset_biomas.pkl')
 print("Dataset guardado como 'dataset_biomas.pkl'")
 
 # Evaluar con cross-validation
@@ -136,7 +136,7 @@ print(f"Balanced Accuracy CV: {scores.mean():.2f} (+/- {scores.std() * 2:.2f})")
 clf.fit(X, y)
 
 # Guardar modelo
-joblib.dump(clf, 'modelo_biomas.pkl')
+joblib.dump(clf, 'models/modelo_biomas.pkl')
 print("Modelo guardado como 'modelo_biomas.pkl'")
 
 # Función para predecir en una nueva imagen
@@ -146,4 +146,4 @@ def predecir_bioma(img_path, umbral=40):
     return pred[0]
 
 # Ejemplo de uso
-print(predecir_bioma('img_recortadas/playa01.png'))
+print(predecir_bioma('imgs/img_recortadas/playa01.png'))
