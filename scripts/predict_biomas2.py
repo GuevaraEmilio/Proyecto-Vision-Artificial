@@ -59,7 +59,7 @@ def extract_features(img_path, umbral):
     return features
 
 # Parámetros
-umbral = 50  # Mismo que en el entrenamiento
+umbral = 40  # Mismo que en el entrenamiento
 
 # Verificar argumentos
 if len(sys.argv) < 2:
