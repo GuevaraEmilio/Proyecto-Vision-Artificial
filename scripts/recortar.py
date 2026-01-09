@@ -2,12 +2,12 @@ import os
 from PIL import Image
 
 # Carpeta de entrada y salida
-input_dir = "imgs/img_recortadas"
+input_dir = "../imgs/newImagenes"
 output_dir = "imgs/imag_recortadas"
 
 # ===== CONFIGURACIÓN: Cambiar dimensiones aquí =====
-TARGET_WIDTH = 256
-TARGET_HEIGHT = 256
+TARGET_WIDTH = 200
+TARGET_HEIGHT = 200
 # ====================================================
 
 os.makedirs(output_dir, exist_ok=True)
